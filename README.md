@@ -2,6 +2,15 @@
 
 A premium, multi-page website for a Brisbane inner-west cleaning, housekeeping and home-organising service.
 
+## Production
+
+- Website: https://dl4dzzrd6411l.cloudfront.net
+- AWS region: `ap-southeast-2`
+- CloudFormation stack: `haven-homes-co-site`
+- CloudFront distribution: `E1JCG0WWYDI28H`
+
+The contact form is registered as `haven-homes-co` in the Anchor Web Co. shared forms service. The CloudFront origin is explicitly allowlisted by that service.
+
 ## Local development
 
 ```bash
