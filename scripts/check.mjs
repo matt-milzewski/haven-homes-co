@@ -31,6 +31,13 @@ for (const file of pages) {
   if (!html.includes('rel="canonical"')) problems.push("canonical");
   if (!html.includes("<h1")) problems.push("h1");
   if (!html.includes('lang="en-AU"')) problems.push("language");
+  if (
+    !html.includes(
+      'Website designed by <a href="https://www.anchorwebco.com.au/">Anchor Web Co.</a>',
+    )
+  ) {
+    problems.push("Anchor Web Co. footer credit");
+  }
   if (problems.length) {
     throw new Error(`${file} is missing: ${problems.join(", ")}`);
   }

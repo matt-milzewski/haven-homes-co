@@ -126,6 +126,7 @@ function footer() {
           <span>© <span data-year></span> Haven Homes Co.</span>
           <span>Brisbane, Queensland</span>
         </div>
+        <p class="footer-credit">Website designed by <a href="https://www.anchorwebco.com.au/">Anchor Web Co.</a></p>
       </div>
     </footer>`;
 }
