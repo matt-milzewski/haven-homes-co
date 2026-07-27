@@ -1177,20 +1177,19 @@ textarea:focus {
 
 .footer-credit {
   margin: 1.15rem 0 0;
-  color: rgba(255, 253, 249, 0.42);
-  font-size: 0.68rem;
-  letter-spacing: 0.02em;
+  color: rgba(255, 253, 249, 0.45);
+  font-size: 0.72rem;
   text-align: center;
 }
 
 .footer-credit a {
-  color: rgba(255, 253, 249, 0.7);
-  text-underline-offset: 0.18em;
-  transition: color 180ms ease;
+  color: inherit;
+  text-decoration: none;
 }
 
-.footer-credit a:hover {
-  color: var(--paper);
+.footer-credit a:focus-visible {
+  outline: 2px solid rgba(255, 253, 249, 0.7);
+  outline-offset: 0.2rem;
 }
 
 [data-reveal] {
