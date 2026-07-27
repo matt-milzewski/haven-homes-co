@@ -1,0 +1,14 @@
+{
+  "name": "haven-homes-co",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Premium home care and cleaning website for Brisbane's inner west.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
