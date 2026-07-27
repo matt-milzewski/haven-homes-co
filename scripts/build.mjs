@@ -188,7 +188,7 @@ function layout({
     <meta property="og:url" content="${canonical}">
     <meta property="og:image" content="${siteUrl}/assets/images/haven-homes-social.jpg">
     <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="628">
+    <meta property="og:image:height" content="627">
     <meta name="twitter:card" content="summary_large_image">
     <script type="application/ld+json">${JSON.stringify(structuredData)}</script>
     <script src="/assets/site.js" defer></script>
