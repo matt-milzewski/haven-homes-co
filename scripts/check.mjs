@@ -3,6 +3,7 @@ import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "..");
 const output = path.join(root, "_site");
+const expectedSiteUrl = (process.env.SITE_URL || "").replace(/\/$/, "");
 const requiredFiles = [
   "index.html",
   "services/index.html",
@@ -31,6 +32,9 @@ for (const file of pages) {
   if (!html.includes('rel="canonical"')) problems.push("canonical");
   if (!html.includes("<h1")) problems.push("h1");
   if (!html.includes('lang="en-AU"')) problems.push("language");
+  if (expectedSiteUrl && !html.includes(`href="${expectedSiteUrl}`)) {
+    problems.push("production canonical domain");
+  }
   if (
     !html.includes(
       'Website designed by <a href="https://www.anchorwebco.com.au/">Anchor Web Co.</a>',
@@ -52,6 +56,15 @@ const contact = await readFile(path.join(output, "contact/index.html"), "utf8");
 for (const field of ["name", "address", "phone", "email", "service", "message"]) {
   if (!contact.includes(`name="${field}"`)) {
     throw new Error(`Contact form is missing ${field}`);
+  }
+}
+
+if (expectedSiteUrl) {
+  for (const file of ["sitemap.xml", "robots.txt"]) {
+    const content = await readFile(path.join(output, file), "utf8");
+    if (!content.includes(expectedSiteUrl)) {
+      throw new Error(`${file} is missing the production domain`);
+    }
   }
 }
 

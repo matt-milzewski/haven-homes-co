@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CloudFront TLS certificate for Haven Homes Co.
+
+Parameters:
+  DomainName:
+    Type: String
+    Description: Canonical website domain without a protocol
+  HostedZoneId:
+    Type: AWS::Route53::HostedZone::Id
+    Description: Public Route 53 hosted zone for the website domain
+
+Resources:
+  SiteCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      SubjectAlternativeNames:
+        - !Sub "www.${DomainName}"
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          HostedZoneId: !Ref HostedZoneId
+        - DomainName: !Sub "www.${DomainName}"
+          HostedZoneId: !Ref HostedZoneId
+      KeyAlgorithm: RSA_2048
+      CertificateTransparencyLoggingPreference: ENABLED
+      Tags:
+        - Key: Project
+          Value: haven-homes-co
+
+Outputs:
+  CertificateArn:
+    Description: ACM certificate for the CloudFront distribution
+    Value: !Ref SiteCertificate

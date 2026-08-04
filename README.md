@@ -4,12 +4,14 @@ A premium, multi-page website for a Brisbane inner-west cleaning, housekeeping a
 
 ## Production
 
-- Website: https://dl4dzzrd6411l.cloudfront.net
+- Website: https://havenhomesco.com.au
+- `www` redirect: https://www.havenhomesco.com.au → https://havenhomesco.com.au
 - AWS region: `ap-southeast-2`
 - CloudFormation stack: `haven-homes-co-site`
+- Certificate stack: `haven-homes-co-certificate` (`us-east-1`)
 - CloudFront distribution: `E1JCG0WWYDI28H`
 
-The contact form is registered as `haven-homes-co` in the Anchor Web Co. shared forms service. The CloudFront origin is explicitly allowlisted by that service.
+The contact form is registered as `haven-homes-co` in the Anchor Web Co. shared forms service. The production domain, `www` alias and CloudFront fallback origin are explicitly allowlisted by that service.
 
 ## Local development
 
@@ -29,6 +31,9 @@ GitHub Actions provisions and deploys:
 
 - A private, encrypted, versioned S3 bucket
 - A CloudFront distribution with Origin Access Control
+- An ACM certificate in `us-east-1` for the apex and `www` domains
+- Route 53 IPv4 and IPv6 aliases for the apex and `www` domains
+- A permanent redirect from `www` and the CloudFront hostname to the canonical apex domain
 - Clean URL rewriting through a CloudFront Function
 - HTTPS, compression, cache invalidation and security response headers
 
@@ -42,7 +47,7 @@ Required repository variables:
 - `AWS_REGION` (defaults to `ap-southeast-2`)
 - `ANCHOR_FORMS_API_BASE`
 
-Every push to `main` deploys the CloudFormation stack, builds with the live CloudFront URL for canonical metadata, publishes the site and invalidates the distribution.
+Every push to `main` provisions the certificate, hosting and DNS stacks, builds with the canonical production URL, publishes the site and invalidates the distribution.
 
 ## Contact form
 

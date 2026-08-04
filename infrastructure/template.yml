@@ -1,6 +1,17 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Private S3 and CloudFront hosting for Haven Homes Co.
 
+Parameters:
+  DomainName:
+    Type: String
+    Description: Canonical website domain without a protocol
+  HostedZoneId:
+    Type: AWS::Route53::HostedZone::Id
+    Description: Public Route 53 hosted zone for the website domain
+  CertificateArn:
+    Type: String
+    Description: ACM certificate ARN issued in us-east-1 for CloudFront
+
 Resources:
   SiteBucket:
     Type: AWS::S3::Bucket
@@ -78,11 +89,53 @@ Resources:
       Name: !Sub "${AWS::StackName}-clean-urls"
       AutoPublish: true
       FunctionConfig:
-        Comment: Resolve clean routes to directory index documents
+        Comment: Enforce the canonical domain and resolve clean routes
         Runtime: cloudfront-js-2.0
-      FunctionCode: |
+      FunctionCode: !Sub |
+        function appendQuery(parts, key, value) {
+          var encodedKey = encodeURIComponent(key);
+          if (value === "") {
+            parts.push(encodedKey);
+          } else {
+            parts.push(encodedKey + "=" + encodeURIComponent(value));
+          }
+        }
+
+        function queryString(query) {
+          var parts = [];
+          for (var key in query) {
+            var parameter = query[key];
+            if (parameter.multiValue) {
+              for (var index = 0; index < parameter.multiValue.length; index += 1) {
+                appendQuery(parts, key, parameter.multiValue[index].value);
+              }
+            } else {
+              appendQuery(parts, key, parameter.value);
+            }
+          }
+          return parts.join("&");
+        }
+
         function handler(event) {
           var request = event.request;
+          var host = request.headers.host ? request.headers.host.value : "";
+
+          if (host !== "${DomainName}") {
+            var location = "https://${DomainName}" + request.uri;
+            var query = queryString(request.querystring);
+            if (query) {
+              location += "?" + query;
+            }
+            return {
+              statusCode: 301,
+              statusDescription: "Moved Permanently",
+              headers: {
+                location: { value: location },
+                "cache-control": { value: "public, max-age=86400" }
+              }
+            };
+          }
+
           var uri = request.uri;
           if (uri.endsWith("/")) {
             request.uri += "index.html";
@@ -102,6 +155,13 @@ Resources:
         HttpVersion: http2and3
         IPV6Enabled: true
         PriceClass: PriceClass_All
+        Aliases:
+          - !Ref DomainName
+          - !Sub "www.${DomainName}"
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          MinimumProtocolVersion: TLSv1.2_2021
+          SslSupportMethod: sni-only
         Origins:
           - Id: SiteBucketOrigin
             DomainName: !GetAtt SiteBucket.RegionalDomainName
@@ -152,6 +212,36 @@ Resources:
               StringEquals:
                 AWS:SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
 
+  WebsiteDnsRecords:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      RecordSets:
+        - Name: !Ref DomainName
+          Type: A
+          AliasTarget:
+            DNSName: !GetAtt Distribution.DomainName
+            HostedZoneId: Z2FDTNDATAQYW2
+            EvaluateTargetHealth: false
+        - Name: !Ref DomainName
+          Type: AAAA
+          AliasTarget:
+            DNSName: !GetAtt Distribution.DomainName
+            HostedZoneId: Z2FDTNDATAQYW2
+            EvaluateTargetHealth: false
+        - Name: !Sub "www.${DomainName}"
+          Type: A
+          AliasTarget:
+            DNSName: !GetAtt Distribution.DomainName
+            HostedZoneId: Z2FDTNDATAQYW2
+            EvaluateTargetHealth: false
+        - Name: !Sub "www.${DomainName}"
+          Type: AAAA
+          AliasTarget:
+            DNSName: !GetAtt Distribution.DomainName
+            HostedZoneId: Z2FDTNDATAQYW2
+            EvaluateTargetHealth: false
+
 Outputs:
   BucketName:
     Description: Private S3 deployment bucket
@@ -164,4 +254,4 @@ Outputs:
     Value: !GetAtt Distribution.DomainName
   WebsiteUrl:
     Description: HTTPS website URL
-    Value: !Sub "https://${Distribution.DomainName}"
+    Value: !Sub "https://${DomainName}"
