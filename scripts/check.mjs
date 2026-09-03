@@ -59,6 +59,17 @@ for (const field of ["name", "address", "phone", "email", "service", "message"])
   }
 }
 
+for (const field of ["_idempotencyKey", "_turnstileToken"]) {
+  if (!contact.includes(`name="${field}"`)) {
+    throw new Error(`Contact form is missing ${field}`);
+  }
+}
+
+const siteScript = await readFile(path.join(output, "assets/site.js"), "utf8");
+if (!siteScript.includes("response.status < 500 && !result.pending")) {
+  throw new Error("Contact retries must preserve idempotency for pending and server-error states");
+}
+
 if (expectedSiteUrl) {
   for (const file of ["sitemap.xml", "robots.txt"]) {
     const content = await readFile(path.join(output, file), "utf8");

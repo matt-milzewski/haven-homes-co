@@ -58,9 +58,37 @@ if (form) {
   const startedAt = form.querySelector('input[name="_startedAt"]');
   const service = form.querySelector('select[name="service"]');
   const requestedService = new URLSearchParams(window.location.search).get("service");
+  const idempotency = form.querySelector('input[name="_idempotencyKey"]');
+  const turnstileToken = form.querySelector('input[name="_turnstileToken"]');
+  const turnstileContainer = form.querySelector("[data-turnstile]");
+  const turnstileSiteKey = body.dataset.turnstileSiteKey?.trim() || "";
+  let turnstileWidgetId;
 
   if (startedAt) {
     startedAt.value = String(Date.now());
+  }
+
+  if (idempotency) {
+    idempotency.value = crypto.randomUUID
+      ? crypto.randomUUID()
+      : "form_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+  }
+
+  if (turnstileSiteKey && turnstileContainer) {
+    const challengeScript = document.createElement("script");
+    challengeScript.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    challengeScript.async = true;
+    challengeScript.defer = true;
+    challengeScript.addEventListener("load", () => {
+      turnstileWidgetId = window.turnstile.render(turnstileContainer, {
+        sitekey: turnstileSiteKey,
+        action: "contact_submit",
+        callback: (token) => { turnstileToken.value = token; },
+        "expired-callback": () => { turnstileToken.value = ""; },
+        "error-callback": () => { turnstileToken.value = ""; },
+      });
+    });
+    document.head.appendChild(challengeScript);
   }
 
   if (
@@ -89,6 +117,11 @@ if (form) {
       return;
     }
 
+    if (turnstileSiteKey && !turnstileToken.value) {
+      setStatus("Please complete the anti-spam check before sending.", "error");
+      return;
+    }
+
     const data = Object.fromEntries(new FormData(form).entries());
     submitButton.disabled = true;
     submitButton.setAttribute("aria-busy", "true");
@@ -104,8 +137,13 @@ if (form) {
         },
       );
 
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.accepted !== true || !result.submissionId) {
+        const submissionError = new Error(result.error || "Request failed with status " + response.status);
+        // Preserve the key for pending/5xx delivery states so retries resume the
+        // same durable submission rather than creating another email side effect.
+        submissionError.rotateIdempotency = response.status < 500 && !result.pending;
+        throw submissionError;
       }
 
       setStatus("Thank you. Your enquiry has been sent.", "success");
@@ -113,9 +151,18 @@ if (form) {
     } catch (error) {
       console.error("Unable to submit enquiry", error);
       setStatus(
-        "We couldn’t send that just now. Please check your details and try again.",
+        error.message || "We couldn’t send that just now. Please check your details and try again.",
         "error",
       );
+      if (turnstileToken) turnstileToken.value = "";
+      if (idempotency && error.rotateIdempotency) {
+        idempotency.value = crypto.randomUUID
+          ? crypto.randomUUID()
+          : "form_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+      }
+      if (window.turnstile && turnstileWidgetId !== undefined) {
+        window.turnstile.reset(turnstileWidgetId);
+      }
       submitButton.disabled = false;
       submitButton.removeAttribute("aria-busy");
     }

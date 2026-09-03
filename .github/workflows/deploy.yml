@@ -12,6 +12,7 @@ concurrency:
 
 permissions:
   contents: read
+  id-token: write
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION || 'ap-southeast-2' }}
@@ -36,7 +37,16 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials with GitHub OIDC
+        if: ${{ vars.AWS_DEPLOY_ROLE_ARN != '' }}
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          role-session-name: haven-site-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configure bootstrap AWS credentials
+        if: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' }}
         uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -92,6 +102,7 @@ jobs:
         env:
           SITE_URL: ${{ steps.outputs.outputs.site_url }}
           ANCHOR_FORMS_API_BASE: ${{ vars.ANCHOR_FORMS_API_BASE }}
+          TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
         run: |
           npm run build
           npm run check

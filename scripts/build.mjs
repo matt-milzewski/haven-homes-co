@@ -5,6 +5,7 @@ const root = path.resolve(import.meta.dirname, "..");
 const outputDir = path.join(root, "_site");
 const siteUrl = (process.env.SITE_URL || "http://localhost:4173").replace(/\/$/, "");
 const formsApiBase = process.env.ANCHOR_FORMS_API_BASE || "";
+const turnstileSiteKey = process.env.TURNSTILE_SITE_KEY || "";
 
 const escapeAttribute = (value) =>
   String(value)
@@ -194,7 +195,7 @@ function layout({
     <script type="application/ld+json">${JSON.stringify(structuredData)}</script>
     <script src="/assets/site.js" defer></script>
   </head>
-  <body data-forms-api-base="${escapeAttribute(formsApiBase)}">
+  <body data-forms-api-base="${escapeAttribute(formsApiBase)}" data-turnstile-site-key="${escapeAttribute(turnstileSiteKey)}">
     <a class="skip-link" href="#main-content">Skip to content</a>
     ${header(pagePath, innerHeader)}
     <main id="main-content">${content}</main>
@@ -474,6 +475,9 @@ function contactPage() {
               <div class="field field--full"><label for="message">Tell us a little more</label><textarea id="message" name="message" placeholder="Property size, preferred frequency, priorities or anything else that would help…"></textarea></div>
               <div class="form-honeypot" aria-hidden="true"><label for="company">Company</label><input id="company" name="company" tabindex="-1" autocomplete="off"></div>
               <input type="hidden" name="_startedAt" value="">
+              <input type="hidden" name="_idempotencyKey" value="">
+              <input type="hidden" name="_turnstileToken" value="">
+              <div class="field field--full" data-turnstile aria-label="Anti-spam verification"></div>
             </div>
             <div class="form-footer"><p class="form-note">By submitting this form, you agree that Haven Homes Co. may use these details to respond to your enquiry.</p><button class="button" type="submit">Send enquiry</button></div>
             <p class="form-status" data-form-status role="status" aria-live="polite"></p>
