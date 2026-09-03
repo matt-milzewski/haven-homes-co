@@ -37,6 +37,28 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Validate GitHub OIDC subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl --fail --silent --show-error \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")"
+          OIDC_JWT="$(jq -r '.value' <<<"$response")" python - <<'PY'
+          import base64
+          import json
+          import os
+
+          token = os.environ["OIDC_JWT"]
+          encoded = token.split(".")[1]
+          claims = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
+          expected = "repo:matt-milzewski/haven-homes-co:ref:refs/heads/main"
+          actual = claims.get("sub", "")
+          print("OIDC subject: " + actual)
+          if actual != expected:
+              raise SystemExit("Unexpected OIDC subject")
+          PY
+
       - name: Configure AWS credentials with GitHub OIDC
         if: ${{ vars.AWS_DEPLOY_ROLE_ARN != '' }}
         uses: aws-actions/configure-aws-credentials@v6
