@@ -52,7 +52,7 @@ jobs:
           token = os.environ["OIDC_JWT"]
           encoded = token.split(".")[1]
           claims = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
-          expected = "repo:matt-milzewski/haven-homes-co:ref:refs/heads/main"
+          expected = "repo:matt-milzewski@94414080/haven-homes-co@1313723144:ref:refs/heads/main"
           actual = claims.get("sub", "")
           print("OIDC subject: " + actual)
           if actual != expected:
@@ -60,19 +60,10 @@ jobs:
           PY
 
       - name: Configure AWS credentials with GitHub OIDC
-        if: ${{ vars.AWS_DEPLOY_ROLE_ARN != '' }}
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           role-session-name: haven-site-${{ github.run_id }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Configure bootstrap AWS credentials
-        if: ${{ vars.AWS_DEPLOY_ROLE_ARN == '' }}
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Provision TLS certificate
